@@ -84,6 +84,18 @@ export function StreakSimulator() {
     resetGame();
   };
 
+  // Inside your StreakSimulator.tsx
+const [time, setTime] = useState("8:30 PM");
+
+// Update handleAction to also advance time
+const handleActionWithTime = (choice: any) => {
+  if (state.tokens > 0) {
+    chooseSnap(choice);
+    // Advance time to show the late-night pressure [cite: 3895]
+    setTime(prev => prev === "8:30 PM" ? "10:15 PM" : "11:45 PM");
+  }
+};
+
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-background">
       <div className="w-full max-w-[460px]">
@@ -95,6 +107,16 @@ export function StreakSimulator() {
               {isBurnout && <span className="text-[8px] text-destructive font-bold animate-pulse mr-2 text-right leading-tight">ENERGY DEPLETED<br/>11PM-5AM MODE</span>}
             </div>
           </div>
+
+          <div className="flex items-center justify-between px-6 pt-4 pb-2">
+  <span className="text-[10px] font-mono font-bold text-primary">{time}</span>
+  {/* Trigger visual 'Night Mode' if past 11 PM [cite: 1008] */}
+  {time === "11:45 PM" && (
+    <span className="text-[8px] text-destructive bg-destructive/10 px-2 py-0.5 rounded animate-pulse">
+      STAYING UP FOR STREAKS
+    </span>
+  )}
+</div>
 
           <AnimatePresence mode="wait">
             {state.phase === "intro" && (
