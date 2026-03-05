@@ -214,6 +214,60 @@ useEffect(() => {
             )}
           </AnimatePresence>
 
+          {/* ... inside your return statement ... */}
+
+<div className="relative"> {/* Use relative here to position the overlay correctly */}
+  <SnapChooser
+    tokens={state.tokens}
+    onChoose={(choice) => {
+      if (state.tokens > 0) chooseSnap(choice);
+    }}
+    onSkip={skipStreak}
+    streak={state.streak}
+  />
+
+  {/* NEW: End Day / Burnout Interface */}
+  <AnimatePresence>
+    {state.tokens === 0 && (
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="absolute inset-0 bg-background/90 backdrop-blur-sm flex flex-col items-center justify-center text-center p-6 rounded-2xl border-2 border-destructive/20 z-10"
+      >
+        <div className="bg-destructive/10 p-3 rounded-full mb-3">
+          <span className="text-3xl">🔋</span>
+        </div>
+        
+        <h3 className="font-bold text-lg text-destructive mb-1">Energy Depleted</h3>
+        
+        <p className="text-[11px] text-muted-foreground mb-6 leading-relaxed max-w-[200px]">
+          "When I've been on my screen for five hours... I'm less fun to be around." 
+          <br />
+          <span className="italic mt-1 block font-medium">15-24% of teen Snap time is spent between 9pm and 5am. [cite: 1008, 3895]</span>
+        </p>
+        
+        <button 
+          onClick={() => skipStreak()} // This should trigger your engine's day-reset/summary logic
+          className="w-full bg-primary text-primary-foreground py-3 rounded-xl font-bold shadow-lg hover:brightness-110 active:scale-95 transition-all"
+        >
+          Go to Sleep (Finish Day {state.currentDay})
+        </button>
+      </motion.div>
+    )}
+  </AnimatePresence>
+</div>
+
+{/* Keep your Psychology Cards section below this div so they can appear on top */}
+<AnimatePresence>
+  {activeCards.map((card) => (
+    <PsychologyCard
+      key={card.id}
+      {...card}
+      onDismiss={() => dismissCard(card.id)}
+    />
+  ))}
+</AnimatePresence>
+
           <div className="flex justify-center pb-3">
             <div className="w-32 h-1 rounded-full bg-muted-foreground/30" />
           </div>
