@@ -151,33 +151,48 @@ export function useSimulatorEngine() {
     setState((s) => ({ ...s, phase: "choosing" }));
   }, []);
 
-  const chooseSnap = useCallback((quality: SnapQuality) => {
-    const cost = SNAP_COSTS[quality];
-    setState((s) => {
-      if (s.tokens < cost) return s;
+const chooseSnap = useCallback((quality: SnapQuality) => {
+  const cost = SNAP_COSTS[quality];
+  
+  setState((s) => {
+    // 1. Check if user has enough tokens to even make this choice
+    if (s.tokens < cost) return s;
 
-      const usedIds = new Set(s.history.map((h) => h.notification?.id).filter(Boolean) as string[]);
-      const notification = getNotificationForDay(s.currentDay, usedIds);
+    const usedIds = new Set(s.history.map((h) => h.notification?.id).filter(Boolean) as string[]);
+    const notification = getNotificationForDay(s.currentDay, usedIds);
 
-      if (notification) {
-        return {
-          ...s,
-          pendingSnapChoice: quality,
-          currentNotification: notification,
-          phase: "notification",
-        };
-      }
+    // 2. If a notification pops up (simulating 9pm-5am pressure), we pause [cite: 3895]
+    if (notification) {
+      return {
+        ...s,
+        pendingSnapChoice: quality,
+        currentNotification: notification,
+        phase: "notification",
+        // Do NOT subtract tokens here yet, as the user hasn't "confirmed" through the notification
+      };
+    }
 
-      return applySnapChoice(s, quality, null, undefined);
-    });
-  }, []);
+    // 3. If no notification, subtract tokens and update streak immediately
+    return {
+      ...applySnapChoice(s, quality, null, undefined),
+      tokens: s.tokens - cost, // THIS IS THE CRITICAL LINE
+      hasActioned: true
+    };
+  });
+}, []);
 
-  const handleNotification = useCallback((choice: "ignore" | "attend") => {
-    setState((s) => {
-      if (!s.pendingSnapChoice || !s.currentNotification) return s;
-      return applySnapChoice(s, s.pendingSnapChoice, s.currentNotification, choice);
-    });
-  }, []);
+const handleNotification = (choice: NotificationChoice) => {
+  setState(s => {
+    const cost = s.pendingSnapChoice ? SNAP_COSTS[s.pendingSnapChoice] : 0;
+    return {
+      ...applySnapChoice(s, s.pendingSnapChoice!, s.currentNotification, choice),
+      tokens: s.tokens - cost, // Ensure cost is deducted after the notification is resolved
+      currentNotification: null,
+      pendingSnapChoice: null,
+      phase: "choosing"
+    };
+  });
+};
 
   const skipStreak = useCallback(() => {
     setState((s) => {
