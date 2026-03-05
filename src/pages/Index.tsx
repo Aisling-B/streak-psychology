@@ -1,7 +1,7 @@
-import { StreakMachine } from "@/components/StreakMachine";
+import { StreakSimulator } from "@/components/simulator/StreakSimulator";
 
 const Index = () => {
-  return <StreakMachine />;
+  return <StreakSimulator />;
 };
 
 export default Index;
