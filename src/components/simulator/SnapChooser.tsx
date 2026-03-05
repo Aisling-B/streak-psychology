@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
-import type { SnapQuality } from "@/hooks/useSimulatorEngine";
+import { Button } from "@/components/ui/button";
+import { SnapQuality } from "@/hooks/useSimulatorEngine";
 
 interface SnapChooserProps {
   tokens: number;
@@ -8,88 +9,84 @@ interface SnapChooserProps {
   streak: number;
 }
 
-const options: { quality: SnapQuality; label: string; emoji: string; cost: number; desc: string }[] = [
-  {
-    quality: "blank",
-    label: "Blank Snap",
-    emoji: "⬛",
-    cost: 1,
-    desc: "Black screen. Keeps the number alive, but your friend knows you don't care.",
-  },
-  {
-    quality: "photo",
-    label: "Quick Photo",
-    emoji: "📸",
-    cost: 2,
-    desc: "A ceiling pic with 'streaks' written on it. Low effort, but at least it's something.",
-  },
-  {
-    quality: "personal",
-    label: "Personal Message",
-    emoji: "💬",
-    cost: 3,
-    desc: "An actual conversation. Takes time, but builds a real connection.",
-  },
-];
-
 export function SnapChooser({ tokens, onChoose, onSkip, streak }: SnapChooserProps) {
   return (
-    <div className="space-y-3">
-      <p className="text-xs text-muted-foreground text-center">
-        How do you want to keep the streak?
-      </p>
+    <div className="space-y-4">
+      <div className="grid gap-3">
+        {/* Choice 1: Maintenance (Behavioral Chore) */}
+        <Button
+          variant="outline"
+          className="h-auto py-4 px-4 flex flex-col items-start gap-1 group relative overflow-hidden border-2 hover:border-primary/50 transition-all"
+          onClick={() => onChoose("blank")}
+          disabled={tokens < 1}
+        >
+          <div className="flex justify-between items-center w-full">
+            <span className="font-bold text-sm flex items-center gap-2">
+              🟦 Send "Blank" Snap 
+            </span>
+            <span className="text-[9px] bg-secondary px-1.5 py-0.5 rounded font-black uppercase tracking-tighter">
+              Chore (1⚡)
+            </span>
+          </div>
+          <p className="text-[10px] text-muted-foreground text-left leading-tight">
+            Low effort. Keeps the 🔥 {streak} number alive, but doesn't build real friendship.
+          </p>
+        </Button>
 
-      <div className="space-y-2">
-        {options.map((opt, i) => {
-          const canAfford = tokens >= opt.cost;
-          return (
-            <motion.button
-              key={opt.quality}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.08 }}
-              disabled={!canAfford}
-              onClick={() => onChoose(opt.quality)}
-              className={`w-full text-left rounded-xl border p-3 transition-all ${
-                canAfford
-                  ? "border-border hover:border-primary/50 hover:bg-primary/5 cursor-pointer"
-                  : "border-border/30 opacity-40 cursor-not-allowed"
-              }`}
-            >
-              <div className="flex items-center justify-between mb-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-lg">{opt.emoji}</span>
-                  <span className="text-sm font-semibold text-foreground">{opt.label}</span>
-                </div>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-accent/20 text-accent">
-                  {opt.cost} {opt.cost === 1 ? "token" : "tokens"}
-                </span>
-              </div>
-              <p className="text-[11px] text-muted-foreground leading-relaxed pl-8">
-                {opt.desc}
-              </p>
-            </motion.button>
-          );
-        })}
+        {/* Choice 2: Standard Sharing  */}
+        <Button
+          variant="outline"
+          className="h-auto py-4 px-4 flex flex-col items-start gap-1 group border-2 hover:border-primary/50 transition-all"
+          onClick={() => onChoose("photo")}
+          disabled={tokens < 2}
+        >
+          <div className="flex justify-between items-center w-full">
+            <span className="font-bold text-sm flex items-center gap-2">
+              📸 Send Photo/Video
+            </span>
+            <span className="text-[9px] bg-secondary px-1.5 py-0.5 rounded font-black uppercase tracking-tighter">
+              Standard (2⚡)
+            </span>
+          </div>
+          <p className="text-[10px] text-muted-foreground text-left leading-tight">
+            34% of teens post videos daily. More engaging, but costs more energy.
+          </p>
+        </Button>
+
+        {/* Choice 3: Meaningful Connection */}
+        <Button
+          variant="outline"
+          className="h-auto py-4 px-4 flex flex-col items-start gap-1 group border-2 hover:border-primary/50 transition-all"
+          onClick={() => onChoose("personal")}
+          disabled={tokens < 3}
+        >
+          <div className="flex justify-between items-center w-full">
+            <span className="font-bold text-sm flex items-center gap-2">
+              💬 Personal Message
+            </span>
+            <span className="text-[9px] bg-primary/20 text-primary px-1.5 py-0.5 rounded font-black uppercase tracking-tighter">
+              Connection (3⚡)
+            </span>
+          </div>
+          <p className="text-[10px] text-muted-foreground text-left leading-tight">
+            Meaningful conversation. Best for friendship, but high energy drain.
+          </p>
+        </Button>
       </div>
 
-      <motion.button
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.3 }}
+      {/* Choice 4: Priority Shift (Break the Loop) */}
+      <Button
+        variant="ghost"
+        className="w-full h-auto py-3 px-4 flex flex-col items-center gap-1 border-2 border-dashed border-muted-foreground/20 hover:bg-destructive/5 hover:border-destructive/30 transition-all group"
         onClick={onSkip}
-        className="w-full py-2.5 rounded-xl border border-destructive/30 text-destructive text-xs font-medium hover:bg-destructive/10 transition-colors"
       >
-        Skip Today — Break the Streak 💔
-      </motion.button>
-
-      {streak >= 3 && (
-        <p className="text-[10px] text-center text-reveal italic">
-          "Can you really just let {streak} days go to waste?"
-          <br />
-          <span className="text-muted-foreground not-italic">— That's loss aversion talking.</span>
+        <span className="font-bold text-xs flex items-center gap-2 group-hover:text-destructive transition-colors">
+          🛌 Put Phone Away
+        </span>
+        <p className="text-[9px] text-muted-foreground italic">
+          Prioritize rest. This will break your streak but clear "Brain Rot" fatigue. [cite: 1041, 3867]
         </p>
-      )}
+      </Button>
     </div>
   );
 }
