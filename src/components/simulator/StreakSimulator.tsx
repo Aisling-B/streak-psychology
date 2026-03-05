@@ -96,6 +96,15 @@ const handleActionWithTime = (choice: any) => {
   }
 };
 
+  const [simulatedTime, setSimulatedTime] = useState("9:15 PM");
+
+// Update simulated time whenever tokens change
+useEffect(() => {
+  if (state.tokens === 4) setSimulatedTime("10:45 PM");
+  if (state.tokens === 2) setSimulatedTime("11:30 PM");
+  if (state.tokens === 0) setSimulatedTime("12:15 AM");
+}, [state.tokens]);
+
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-background">
       <div className="w-full max-w-[460px]">
@@ -108,12 +117,9 @@ const handleActionWithTime = (choice: any) => {
           </div>
 
           <div className="flex items-center justify-between px-6 pt-4 pb-2">
-  <span className="text-[10px] font-mono font-bold text-primary">{time}</span>
-  {/* Trigger visual 'Night Mode' if past 11 PM [cite: 1008] */}
-  {time === "11:45 PM" && (
-    <span className="text-[8px] text-destructive bg-destructive/10 px-2 py-0.5 rounded animate-pulse">
-      STAYING UP FOR STREAKS
-    </span>
+<span className="text-[10px] font-mono font-bold text-foreground">
+  {simulatedTime} {state.tokens < 3 ? "🌙" : "🔋"}
+</span>
   )}
 </div>
 
