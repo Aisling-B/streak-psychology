@@ -76,6 +76,22 @@ export function StreakSimulator() {
     resetGame();
   };
 
+  const isBurnout = state.tokens === 0;
+
+// Re-inject the Psychology Cards specifically for the burnout phase
+useEffect(() => {
+  if (isBurnout && !activeCards.find(c => c.id === "burnout-logic")) {
+    const burnoutCard: RevealCard = {
+      id: "burnout-logic",
+      title: "😫 The Burnout Loop",
+      description: "You're out of energy, but the streak is still active. This mirrors the 'brain rot' feeling where 15-24% of activity happens after 9pm just to keep numbers alive[cite: 3895, 1041].",
+      emoji: "😫",
+      color: "destructive",
+    };
+    setActiveCards(prev => [...prev, burnoutCard]);
+  }
+}, [isBurnout]);
+
   // Logic: Calculate the dynamic cost of choices
   // Personal snaps are "Expensive" (5 tokens) to show they require real energy vs "Blank" snaps
   const snapCostForPending = state.pendingSnapChoice
