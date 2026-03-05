@@ -17,22 +17,18 @@ interface RevealCard {
   color: "primary" | "accent" | "reveal" | "destructive";
 }
 
-// Milestone values adjusted to match a high starting streak (120+)
-// This triggers "Loss Aversion" immediately as per research [cite: 486]
 const MILESTONE_CARDS: Record<number, RevealCard> = {
-  121: {
+  1: {
     id: "dopamine",
     title: "🧪 The Dopamine Loop",
-    description:
-      "Your brain releases dopamine because it ANTICIPATES the reward of that number going up. You are literally 'hooked' to a small degree[cite: 480].",
+    description: "Your brain releases dopamine because it ANTICIPATES the reward of that number going up. You are literally 'hooked' to a small degree[cite: 10607].",
     emoji: "🧪",
     color: "primary",
   },
-  124: {
+  4: {
     id: "sunk-cost",
     title: "🪤 Sunk Cost Fallacy",
-    description:
-      "You've invested days into this. Breaking it now feels like 'wasting' life energy. This is a behavioral chore, not a conversation.",
+    description: "You've invested days into this. Breaking it now feels like 'wasting' life energy. This is a behavioral chore, not a conversation[cite: 10756].",
     emoji: "🪤",
     color: "accent",
   },
@@ -42,7 +38,6 @@ export function StreakSimulator() {
   const { state, startGame, chooseSnap, handleNotification, skipStreak, resetGame } = useSimulatorEngine();
   const [activeCards, setActiveCards] = useState<RevealCard[]>([]);
 
-  // Psychology Trigger: Anticipatory Dopamine & Social Currency
   useEffect(() => {
     const card = MILESTONE_CARDS[state.streak];
     if (card && !activeCards.find((c) => c.id === card.id)) {
@@ -50,14 +45,12 @@ export function StreakSimulator() {
     }
   }, [state.streak]);
 
-  // Trigger Loss Aversion: Weaponizing the fear of losing progress [cite: 4100]
   useEffect(() => {
     if (state.streakBroken && state.streak === 0) {
       const lossCard: RevealCard = {
         id: "loss-aversion",
         title: "🧠 Loss Aversion",
-        description:
-          "Losing a 120-day streak hurts because humans value avoiding loss more than making gains. This instinct keeps you coming back 841 times a month[cite: 3761].",
+        description: "Losing a streak hurts because humans value avoiding loss more than making gains. This instinct keeps you coming back 841 times a month[cite: 13888, 14226].",
         emoji: "💔",
         color: "destructive",
       };
@@ -66,6 +59,21 @@ export function StreakSimulator() {
       }
     }
   }, [state.streakBroken]);
+
+  const isBurnout = state.tokens === 0;
+
+  useEffect(() => {
+    if (isBurnout && !activeCards.find(c => c.id === "burnout-logic")) {
+      const burnoutCard: RevealCard = {
+        id: "burnout-logic",
+        title: "😫 The Burnout Loop",
+        description: "You're out of energy, but the streak is still active. This mirrors the 'brain rot' feeling where activity continues after 9pm just to keep numbers alive[cite: 13953, 14003].",
+        emoji: "😫",
+        color: "destructive",
+      };
+      setActiveCards(prev => [...prev, burnoutCard]);
+    }
+  }, [isBurnout]);
 
   const dismissCard = (id: string) => {
     setActiveCards((prev) => prev.filter((c) => c.id !== id));
@@ -76,56 +84,15 @@ export function StreakSimulator() {
     resetGame();
   };
 
-  const isBurnout = state.tokens === 0;
-
-// Re-inject the Psychology Cards specifically for the burnout phase
-useEffect(() => {
-  if (isBurnout && !activeCards.find(c => c.id === "burnout-logic")) {
-    const burnoutCard: RevealCard = {
-      id: "burnout-logic",
-      title: "😫 The Burnout Loop",
-      description: "You're out of energy, but the streak is still active. This mirrors the 'brain rot' feeling where 15-24% of activity happens after 9pm just to keep numbers alive[cite: 3895, 1041].",
-      emoji: "😫",
-      color: "destructive",
-    };
-    setActiveCards(prev => [...prev, burnoutCard]);
-  }
-}, [isBurnout]);
-
-  // Logic: Calculate the dynamic cost of choices
-  // Personal snaps are "Expensive" (5 tokens) to show they require real energy vs "Blank" snaps
-  const snapCostForPending = state.pendingSnapChoice
-    ? { blank: 1, photo: 3, personal: 5 }[state.pendingSnapChoice]
-    : 0;
-  
-  const tokensAfterSnap = state.tokens - snapCostForPending;
-
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-background">
       <div className="w-full max-w-[460px]">
-        {/* Visual feedback: The frame scales and fades as energy (tokens) deplete [cite: 3867] */}
-        <div 
-          className={`phone-frame relative transition-all duration-700 ${
-            state.tokens === 0 ? "grayscale opacity-80 scale-[0.97]" : ""
-          }`}
-        >
-          {/* Status Bar */}
+        <div className={`phone-frame relative transition-all duration-700 ${isBurnout ? "grayscale opacity-80 scale-[0.97]" : ""}`}>
+          
           <div className="flex items-center justify-between px-6 pt-4 pb-2">
             <span className="text-[10px] font-mono text-muted-foreground">9:41 PM</span>
             <div className="flex items-center gap-1">
-               {state.tokens === 0 && (
-                 <span className="text-[8px] text-destructive font-bold animate-pulse mr-2">
-                   SYSTEM FATIGUE / 11 PM - 5 AM MODE
-                 </span>
-               )}
-               <div className="w-4 h-2 rounded-sm border border-muted-foreground/50 relative">
-                 <div 
-                   className={`absolute inset-0.5 rounded-[1px] transition-all duration-500 ${
-                     state.tokens < 3 ? "bg-destructive" : "bg-primary"
-                   }`} 
-                   style={{ width: `${(state.tokens / state.maxTokens) * 90}%` }}
-                 />
-               </div>
+              {isBurnout && <span className="text-[8px] text-destructive font-bold animate-pulse mr-2 text-right leading-tight">ENERGY DEPLETED<br/>11PM-5AM MODE</span>}
             </div>
           </div>
 
@@ -143,138 +110,55 @@ useEffect(() => {
             )}
 
             {(state.phase === "choosing" || state.phase === "notification") && (
-              <motion.div
-                key="game"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="px-5 pb-5 space-y-4"
-              >
-                {/* Simulated Header showing the "Social Currency" of the high streak */}
+              <motion.div key="game" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="px-5 pb-5 space-y-4">
                 <div className="flex items-center gap-3 py-3 border-b border-border/50">
-                  <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-lg">
-                    👤
-                  </div>
+                  <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-lg">👤</div>
                   <div className="flex-1">
                     <p className="text-sm font-semibold text-foreground">BestFriend_2024</p>
-                    <p className="text-[10px] text-muted-foreground font-bold">
-                      {state.streakBroken ? "💔 STREAK DEAD" : `🔥 ${state.streak} DAY STREAK`}
-                    </p>
+                    <p className="text-[10px] text-muted-foreground font-bold">{state.streakBroken ? "💔 STREAK DEAD" : `🔥 ${state.streak} DAY STREAK`}</p>
                   </div>
                 </div>
 
-                <TokenBar
-                  tokens={state.tokens}
-                  maxTokens={state.maxTokens}
-                  day={state.currentDay}
-                  totalDays={state.totalDays}
-                  streak={state.streak}
-                />
+                <TokenBar tokens={state.tokens} maxTokens={state.maxTokens} day={state.currentDay} totalDays={state.totalDays} streak={state.streak} />
+                <RelationshipMeter value={state.relationshipMeter} sleepDebt={state.sleepDebt} socialHealth={state.socialHealth} />
 
-                <RelationshipMeter
-                  value={state.relationshipMeter}
-                  sleepDebt={state.sleepDebt}
-                  socialHealth={state.socialHealth}
-                />
+                {/* THE FIX: Use a ternary to show either the buttons OR the burnout screen */}
+                <div className="relative">
+                  {!isBurnout ? (
+                    <SnapChooser tokens={state.tokens} onChoose={chooseSnap} onSkip={skipStreak} streak={state.streak} />
+                  ) : (
+                    <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-background/90 backdrop-blur-sm flex flex-col items-center justify-center text-center p-6 rounded-2xl border-2 border-destructive/20 z-10">
+                      <div className="bg-destructive/10 p-3 rounded-full mb-3"><span className="text-3xl">🔋</span></div>
+                      <h3 className="font-bold text-lg text-destructive mb-1 font-mono uppercase tracking-tighter">Energy Depleted</h3>
+                      <p className="text-[11px] text-muted-foreground mb-6 leading-relaxed max-w-[220px]">
+                        "I’m less fun to be around... I can also feel angrier for like no reason"[cite: 13994].
+                        <br /><span className="text-destructive/80 font-bold mt-2 block italic">15-24% of teen Snap time happens in this state[cite: 14022].</span>
+                      </p>
+                      <button onClick={() => skipStreak()} className="w-full bg-primary text-primary-foreground py-4 rounded-xl font-black text-sm uppercase tracking-widest shadow-lg active:scale-95 transition-all">Finish Day & Rest</button>
+                    </motion.div>
+                  )}
+                </div>
 
-                <SnapChooser
-                  tokens={state.tokens}
-                  onChoose={(choice) => {
-                    // Engine check: prevent action if energy is insufficient
-                    if (state.tokens > 0) chooseSnap(choice);
-                  }}
-                  onSkip={skipStreak}
-                  streak={state.streak}
-                />
-
-                {/* Psychology Cards: Explaining the behavioral engineering [cite: 589] */}
                 <AnimatePresence>
                   {activeCards.map((card) => (
-                    <PsychologyCard
-                      key={card.id}
-                      title={card.title}
-                      description={card.description}
-                      emoji={card.emoji}
-                      color={card.color}
-                      onDismiss={() => dismissCard(card.id)}
-                    />
+                    <PsychologyCard key={card.id} title={card.title} description={card.description} emoji={card.emoji} color={card.color} onDismiss={() => dismissCard(card.id)} />
                   ))}
                 </AnimatePresence>
               </motion.div>
             )}
           </AnimatePresence>
 
-          {/* Late Night Notifications: 15-24% of activity happens here [cite: 3895] */}
           <AnimatePresence>
             {state.phase === "notification" && state.currentNotification && (
-              <NotificationOverlay
-                notification={state.currentNotification}
-                tokensLeft={state.tokens}
-                onChoice={handleNotification}
-              />
+              <NotificationOverlay notification={state.currentNotification} tokensLeft={state.tokens} onChoice={handleNotification} />
             )}
           </AnimatePresence>
 
-          {/* ... inside your return statement ... */}
-
-<div className="relative"> {/* Use relative here to position the overlay correctly */}
-  <SnapChooser
-    tokens={state.tokens}
-    onChoose={(choice) => {
-      if (state.tokens > 0) chooseSnap(choice);
-    }}
-    onSkip={skipStreak}
-    streak={state.streak}
-  />
-
-  {/* NEW: End Day / Burnout Interface */}
-  <AnimatePresence>
-    {state.tokens === 0 && (
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="absolute inset-0 bg-background/90 backdrop-blur-sm flex flex-col items-center justify-center text-center p-6 rounded-2xl border-2 border-destructive/20 z-10"
-      >
-        <div className="bg-destructive/10 p-3 rounded-full mb-3">
-          <span className="text-3xl">🔋</span>
-        </div>
-        
-        <h3 className="font-bold text-lg text-destructive mb-1">Energy Depleted</h3>
-        
-        <p className="text-[11px] text-muted-foreground mb-6 leading-relaxed max-w-[200px]">
-          "When I've been on my screen for five hours... I'm less fun to be around." 
-          <br />
-          <span className="italic mt-1 block font-medium">15-24% of teen Snap time is spent between 9pm and 5am. [cite: 1008, 3895]</span>
-        </p>
-        
-        <button 
-          onClick={() => skipStreak()} // This should trigger your engine's day-reset/summary logic
-          className="w-full bg-primary text-primary-foreground py-3 rounded-xl font-bold shadow-lg hover:brightness-110 active:scale-95 transition-all"
-        >
-          Go to Sleep (Finish Day {state.currentDay})
-        </button>
-      </motion.div>
-    )}
-  </AnimatePresence>
-</div>
-
-{/* Keep your Psychology Cards section below this div so they can appear on top */}
-<AnimatePresence>
-  {activeCards.map((card) => (
-    <PsychologyCard
-      key={card.id}
-      {...card}
-      onDismiss={() => dismissCard(card.id)}
-    />
-  ))}
-</AnimatePresence>
-
-          <div className="flex justify-center pb-3">
-            <div className="w-32 h-1 rounded-full bg-muted-foreground/30" />
-          </div>
+          <div className="flex justify-center pb-3"><div className="w-32 h-1 rounded-full bg-muted-foreground/30" /></div>
         </div>
 
         <p className="text-center text-[10px] text-muted-foreground px-8 leading-relaxed mt-4 italic">
-          "When I've been on my screen for five hours, I get up and I'm like oh my gosh, the world is spinning." [cite: 3867]
+          "When I've been on my screen for five hours, I get up and I'm like oh my gosh, the world is spinning"[cite: 13994].
         </p>
       </div>
     </div>
