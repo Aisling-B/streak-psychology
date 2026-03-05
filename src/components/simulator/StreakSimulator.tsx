@@ -9,6 +9,7 @@ import { PostGameSummary } from "./PostGameSummary";
 import { PsychologyCard } from "../PsychologyCard";
 import { useState, useEffect } from "react";
 
+// Types for our educational logic
 interface RevealCard {
   id: string;
   title: string;
@@ -18,37 +19,41 @@ interface RevealCard {
 }
 
 const MILESTONE_CARDS: Record<number, RevealCard> = {
-  1: {
+  121: {
     id: "dopamine",
     title: "🧪 The Dopamine Loop",
-    description:
-      "Your brain just released dopamine — not because something great happened, but because it ANTICIPATED a social reward. This is the same mechanism slot machines use.",
+    description: "Your brain just released dopamine. You aren't reacting to a friend; you're reacting to the anticipation of seeing that number go up.",
     emoji: "🧪",
     color: "primary",
   },
-  4: {
+  124: {
     id: "sunk-cost",
     title: "🪤 Sunk Cost Fallacy",
-    description:
-      "You've invested 4 days of tokens. Breaking the streak now means 'wasting' all that effort — even though those tokens are already gone. This is the sunk cost fallacy, and apps exploit it relentlessly.",
+    description: "You've invested days of energy into this number. Now, you're clicking buttons just to avoid 'wasting' that past effort.",
     emoji: "🪤",
     color: "accent",
-  },
-  7: {
-    id: "social-currency",
-    title: "📊 Social Currency",
-    description:
-      "That streak number is starting to feel like proof of friendship. But ask yourself: is clicking a button daily the same as actually caring about someone?",
-    emoji: "📊",
-    color: "reveal",
-  },
+  }
 };
 
 export function StreakSimulator() {
+  // state comes from your engine, but we will wrap actions in logic
   const { state, startGame, chooseSnap, handleNotification, skipStreak, resetGame } = useSimulatorEngine();
   const [activeCards, setActiveCards] = useState<RevealCard[]>([]);
 
-  // Trigger psychology cards at milestones
+  // Loss Aversion: Trigger when the 120-day streak is threatened or broken
+  useEffect(() => {
+    if (state.streakBroken && !activeCards.find(c => c.id === "loss-aversion")) {
+      setActiveCards(prev => [...prev, {
+        id: "loss-aversion",
+        title: "🧠 Loss Aversion",
+        description: "The pain of losing that 120-day streak feels twice as strong as the joy of reaching it. This is why you feel 'forced' to snap.",
+        emoji: "💔",
+        color: "destructive",
+      }]);
+    }
+  }, [state.streakBroken]);
+
+  // Milestone triggers
   useEffect(() => {
     const card = MILESTONE_CARDS[state.streak];
     if (card && !activeCards.find((c) => c.id === card.id)) {
@@ -56,51 +61,26 @@ export function StreakSimulator() {
     }
   }, [state.streak]);
 
-  // Trigger loss aversion on streak break
-  useEffect(() => {
-    if (state.streakBroken && state.streak === 0) {
-      const lossCard: RevealCard = {
-        id: "loss-aversion",
-        title: "🧠 Loss Aversion",
-        description:
-          "That feeling right now? Humans feel the pain of losing something about TWICE as intensely as the joy of gaining it. Snapchat designed streaks to weaponize this instinct.",
-        emoji: "💔",
-        color: "destructive",
-      };
-      if (!activeCards.find((c) => c.id === lossCard.id)) {
-        setActiveCards((prev) => [...prev, lossCard]);
-      }
-    }
-  }, [state.streakBroken]);
-
   const dismissCard = (id: string) => {
     setActiveCards((prev) => prev.filter((c) => c.id !== id));
   };
 
-  const handleRestart = () => {
-    setActiveCards([]);
-    resetGame();
-  };
-
+  // Helper to calculate costs visually before committing
   const snapCostForPending = state.pendingSnapChoice
-    ? { blank: 1, photo: 2, personal: 3 }[state.pendingSnapChoice]
+    ? { blank: 1, photo: 3, personal: 5 }[state.pendingSnapChoice] // Cost reflects research-backed 'Behavioral Chores'
     : 0;
-  const tokensAfterSnap = state.tokens - snapCostForPending;
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-background">
       <div className="w-full max-w-[460px]">
-        <div className="phone-frame relative">
+        {/* Dynamic visual feedback: Blur screen if tokens are gone but day isn't over */}
+        <div className={`phone-frame relative transition-all duration-500 ${state.tokens === 0 ? "scale-[0.98] grayscale-[0.3]" : ""}`}>
+          
           {/* Status Bar */}
           <div className="flex items-center justify-between px-6 pt-4 pb-2">
             <span className="text-[10px] font-mono text-muted-foreground">9:41</span>
-            <span className="text-[10px] font-mono text-muted-foreground tracking-wider uppercase">
-              The Streak Machine
-            </span>
-            <div className="flex gap-1">
-              <div className="w-4 h-2 rounded-sm border border-muted-foreground/50 relative">
-                <div className="absolute inset-0.5 bg-primary rounded-[1px]" />
-              </div>
+            <div className="flex items-center gap-1 text-[10px] font-mono text-destructive">
+              {state.tokens === 0 && <span className="animate-pulse">⚠️ LOW ENERGY</span>}
             </div>
           </div>
 
@@ -113,7 +93,7 @@ export function StreakSimulator() {
 
             {state.phase === "summary" && (
               <motion.div key="summary" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                <PostGameSummary state={state} onRestart={handleRestart} />
+                <PostGameSummary state={state} onRestart={() => { setActiveCards([]); resetGame(); }} />
               </motion.div>
             )}
 
@@ -124,19 +104,20 @@ export function StreakSimulator() {
                 animate={{ opacity: 1 }}
                 className="px-5 pb-5 space-y-4"
               >
-                {/* Friend Header */}
+                {/* Header with High-Value Streak to trigger Sunk Cost logic */}
                 <div className="flex items-center gap-3 py-3 border-b border-border/50">
                   <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-lg">
                     👤
                   </div>
                   <div className="flex-1">
-                    <p className="text-sm font-semibold text-foreground">BestFriend_2024</p>
-                    <p className="text-[10px] text-muted-foreground">
-                      {state.streakBroken ? "Streak lost..." : state.streak > 0 ? `🔥 ${state.streak} day streak` : "No streak yet"}
+                    <p className="text-sm font-semibold">Alex</p>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-tighter font-bold">
+                      {state.streakBroken ? "💔 Connection Broken" : `🔥 ${state.streak} DAY STREAK`}
                     </p>
                   </div>
                 </div>
 
+                {/* Token Logic: Tokens represent 'Finite Time & Energy' */}
                 <TokenBar
                   tokens={state.tokens}
                   maxTokens={state.maxTokens}
@@ -151,22 +132,23 @@ export function StreakSimulator() {
                   socialHealth={state.socialHealth}
                 />
 
+                {/* Choice logic: Blank Snaps (Low Cost) vs Personal (High Cost) */}
                 <SnapChooser
                   tokens={state.tokens}
-                  onChoose={chooseSnap}
+                  onChoose={(choice) => {
+                     // Internal check: prevent actions if energy is zero
+                     if (state.tokens > 0) chooseSnap(choice);
+                  }}
                   onSkip={skipStreak}
                   streak={state.streak}
                 />
 
-                {/* Psychology Cards */}
+                {/* Psychology Cards: Injected directly into the phone UI */}
                 <AnimatePresence>
                   {activeCards.map((card) => (
                     <PsychologyCard
                       key={card.id}
-                      title={card.title}
-                      description={card.description}
-                      emoji={card.emoji}
-                      color={card.color}
+                      {...card}
                       onDismiss={() => dismissCard(card.id)}
                     />
                   ))}
@@ -175,25 +157,24 @@ export function StreakSimulator() {
             )}
           </AnimatePresence>
 
-          {/* Notification Overlay */}
+          {/* Nighttime Interaction: Notifications simulate pressure */}
           <AnimatePresence>
             {state.phase === "notification" && state.currentNotification && (
               <NotificationOverlay
                 notification={state.currentNotification}
-                tokensLeft={tokensAfterSnap}
+                tokensLeft={state.tokens}
                 onChoice={handleNotification}
               />
             )}
           </AnimatePresence>
 
-          {/* Bottom bar */}
           <div className="flex justify-center pb-3">
             <div className="w-32 h-1 rounded-full bg-muted-foreground/30" />
           </div>
         </div>
 
         <p className="text-center text-[10px] text-muted-foreground px-8 leading-relaxed mt-4">
-          An educational simulation. No real data is sent. Built to help you understand how social media uses behavioral psychology.
+          13-14 year olds spend an average of <strong>2 hours 13 minutes daily</strong> [cite: 3761] maintaining these loops. This tool explores the behavioral engineering behind that time.
         </p>
       </div>
     </div>
