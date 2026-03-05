@@ -102,7 +102,6 @@ const handleActionWithTime = (choice: any) => {
         <div className={`phone-frame relative transition-all duration-700 ${isBurnout ? "grayscale opacity-80 scale-[0.97]" : ""}`}>
           
           <div className="flex items-center justify-between px-6 pt-4 pb-2">
-            <span className="text-[10px] font-mono text-muted-foreground">9:41 PM</span>
             <div className="flex items-center gap-1">
               {isBurnout && <span className="text-[8px] text-destructive font-bold animate-pulse mr-2 text-right leading-tight">ENERGY DEPLETED<br/>11PM-5AM MODE</span>}
             </div>
