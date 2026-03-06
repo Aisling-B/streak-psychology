@@ -9,76 +9,39 @@ import { PostGameSummary } from "./PostGameSummary";
 import { PsychologyCard } from "../PsychologyCard";
 import { useState, useEffect } from "react";
 
-interface RevealCard {
-  id: string;
-  title: string;
-  description: string;
-  emoji: string;
-  color: "primary" | "accent" | "reveal" | "destructive";
-}
-
-const MILESTONE_CARDS: Record<number, RevealCard> = {
-  121: { id: "dopamine", title: "🧪 The Dopamine Loop", description: "Your brain releases dopamine because it ANTICIPATES the reward of that number going up.", emoji: "🧪", color: "primary" },
-  124: { id: "sunk-cost", title: "🪤 Sunk Cost Fallacy", description: "Breaking the streak now feels like 'wasting' life energy. This is a behavioral chore.", emoji: "🪤", color: "accent" },
-};
-
 export function StreakSimulator() {
-  const { state, startGame, chooseSnap, handleNotification, skipStreak, resetGame } = useSimulatorEngine();
-  const [activeCards, setActiveCards] = useState<RevealCard[]>([]);
-
+  const { state, startGame, chooseSnap, handleNotification, skipStreak } = useSimulatorEngine();
+  const [activeCards, setActiveCards] = useState<any[]>([]);
   const isBurnout = state.tokens === 0;
-
-  useEffect(() => {
-    const card = MILESTONE_CARDS[state.streak];
-    if (card && !activeCards.find((c) => c.id === card.id)) setActiveCards((prev) => [...prev, card]);
-  }, [state.streak]);
-
-  useEffect(() => {
-    if (isBurnout && !activeCards.find(c => c.id === "burnout-logic")) {
-      setActiveCards(prev => [...prev, { id: "burnout-logic", title: "😫 The Burnout Loop", description: "15-24% of activity happens between 9pm and 5am just to keep numbers alive.", emoji: "😫", color: "destructive" }]);
-    }
-  }, [isBurnout]);
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-[#FFFC00]">
       <div className="w-full max-w-[460px]">
-        <div className={`phone-frame relative transition-all duration-700 ${isBurnout ? "grayscale opacity-80 scale-[0.97]" : ""}`}>
-          <div className="flex items-center justify-between px-6 pt-4 pb-2">
-            <span className="text-[10px] font-mono font-bold text-foreground">{state.simulatedTime}</span>
+        <div className={`phone-frame relative transition-all duration-700 ${isBurnout ? "grayscale opacity-80" : ""}`}>
+          <div className="flex items-center justify-between px-6 pt-4 pb-2 bg-card/50">
+            <span className="text-[10px] font-mono font-bold">{state.simulatedTime}</span>
             {isBurnout && <span className="text-[8px] text-destructive font-bold animate-pulse">LATE NIGHT MODE</span>}
           </div>
 
           <AnimatePresence mode="wait">
             {state.phase === "intro" && <motion.div key="intro" exit={{ opacity: 0 }}><IntroScreen onStart={startGame} /></motion.div>}
 
+            {/* DAY START POP-UP: Explains the Point */}
             {state.phase === "dayStart" && (
-              <motion.div
-                key="dayStart"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="absolute inset-0 bg-background/95 backdrop-blur-md z-[100] flex flex-col items-center justify-center p-8 text-center"
-              >
-                <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} className="space-y-6">
-                  <div className="space-y-2">
-                    <span className="text-primary font-mono text-[10px] tracking-widest uppercase font-bold">New Cycle Initiated</span>
-                    <h2 className="text-5xl font-black italic text-foreground tracking-tighter">DAY {state.currentDay}</h2>
-                  </div>
-                  <div className="bg-secondary/30 p-4 rounded-2xl border border-border/50">
-                    <p className="text-[11px] text-muted-foreground leading-relaxed">
-                      The loop resets. Your 🔥 {state.streak} day streak is active. 
-                      <br />
-                      <span className="text-foreground font-semibold">13-14 year olds visit this app an average of 841 times a month.</span>
-                    </p>
-                  </div>
-                  <button onClick={startGame} className="w-full bg-[#FFFC00] text-black py-4 rounded-xl font-black text-sm uppercase tracking-widest shadow-lg active:scale-95 transition-all">
-                    Continue the Loop
-                  </button>
-                </motion.div>
+              <motion.div key="dayStart" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 bg-background/95 backdrop-blur-md z-[100] flex flex-col items-center justify-center p-8 text-center">
+                <span className="text-primary font-mono text-[10px] tracking-widest uppercase font-bold">New Cycle</span>
+                <h2 className="text-5xl font-black italic text-foreground mb-4">DAY {state.currentDay}</h2>
+                <div className="bg-secondary/30 p-4 rounded-2xl border mb-6">
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    The loop resets. Your 🔥 {state.streak} day streak is active.
+                    <br/><span className="text-foreground font-semibold italic">13-14 year olds open this app an average of 841 times a month.</span>
+                  </p>
+                </div>
+                <button onClick={startGame} className="w-full bg-[#FFFC00] text-black py-4 rounded-xl font-black text-sm uppercase shadow-lg active:scale-95 transition-all">Continue the Loop</button>
               </motion.div>
             )}
 
-            {state.phase === "summary" && <motion.div key="summary" initial={{ opacity: 0 }} animate={{ opacity: 1 }}><PostGameSummary state={state} onRestart={() => { setActiveCards([]); resetGame(); }} /></motion.div>}
+            {state.phase === "summary" && <motion.div key="summary"><PostGameSummary state={state} onRestart={() => window.location.reload()} /></motion.div>}
 
             {(state.phase === "choosing" || state.phase === "notification") && (
               <motion.div key="game" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="px-5 pb-5 space-y-4">
@@ -105,22 +68,9 @@ export function StreakSimulator() {
                     </motion.div>
                   )}
                 </div>
-
-                <AnimatePresence>
-                  {activeCards.map((card) => (
-                    <PsychologyCard key={card.id} {...card} onDismiss={() => setActiveCards(prev => prev.filter(c => c.id !== card.id))} />
-                  ))}
-                </AnimatePresence>
               </motion.div>
             )}
           </AnimatePresence>
-
-          <AnimatePresence>
-            {state.phase === "notification" && state.currentNotification && (
-              <NotificationOverlay notification={state.currentNotification} tokensLeft={state.tokens} onChoice={(c) => handleNotification(c as NotificationChoice)} />
-            )}
-          </AnimatePresence>
-          <div className="flex justify-center pb-3"><div className="w-32 h-1 rounded-full bg-muted-foreground/30" /></div>
         </div>
       </div>
     </div>
