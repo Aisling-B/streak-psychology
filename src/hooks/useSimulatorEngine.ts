@@ -25,7 +25,7 @@ export interface GameNotification {
 export type NotificationType = "homework" | "family" | "friend-irl" | "sleep-warning" | "anxiety";
 
 export interface SimulatorState {
-  phase: "intro" | "playing" | "choosing" | "notification" | "summary";
+  phase: "intro" | "playing" | "choosing" | "notification" | "summary"| "dayStart";
   currentDay: number;
   totalDays: number;
   streak: number;
@@ -154,7 +154,7 @@ function applySnapChoice(s: SimulatorState, quality: SnapQuality, notification: 
   const isOver = s.currentDay + 1 > s.totalDays;
   return {
     ...s,
-    phase: isOver ? "summary" : "choosing",
+    phase: isOver ? "summary" : "dayStart",
     currentDay: isOver ? s.currentDay : s.currentDay + 1,
     streak: s.streak + 1,
     tokens: isOver ? Math.max(0, tokensLeft) : TOKENS_PER_DAY,
