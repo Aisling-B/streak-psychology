@@ -59,10 +59,20 @@ const NOTIFICATIONS: GameNotification[] = [
 
 export function useSimulatorEngine() {
   const [state, setState] = useState<SimulatorState>({
-    phase: "intro", currentDay: 1, totalDays: TOTAL_DAYS, streak: 120,
-    tokens: TOKENS_PER_DAY, maxTokens: TOKENS_PER_DAY, simulatedTime: "8:30 PM",
-    sleepDebt: 0, socialHealth: 70, relationshipMeter: 50, history: [],
-    currentNotification: null, streakBroken: false, pendingSnapChoice: null,
+    phase: "intro",
+    currentDay: 1,
+    totalDays: TOTAL_DAYS,
+    streak: 120,
+    tokens: TOKENS_PER_DAY,
+    maxTokens: TOKENS_PER_DAY,
+    simulatedTime: "8:30 PM",
+    sleepDebt: 0,
+    socialHealth: 70,
+    relationshipMeter: 50,
+    history: [],
+    currentNotification: null,
+    streakBroken: false,
+    pendingSnapChoice: null,
   });
 
   const calculateTime = (tokensLeft: number) => {
@@ -83,32 +93,63 @@ export function useSimulatorEngine() {
         ...s,
         phase: isOver ? "summary" : "dayStart",
         currentDay: isOver ? s.currentDay : s.currentDay + 1,
-        streak: 0, streakBroken: true, tokens: TOKENS_PER_DAY, simulatedTime: "8:30 PM",
-        relationshipMeter: Math.max(0, s.relationshipMeter - 10),
-        history: [...s.history, { day: s.currentDay, snapQuality: "rest", tokensSpent: { streak: 0, sleep: 0, social: 0 }, tokensRemaining: s.tokens, relationshipDelta: -10 }],
+        streak: 0,
+        streakBroken: true,
+        tokens: TOKENS_PER_DAY,
+        simulatedTime: "8:30 PM",
+        history: [...s.history, { 
+          day: s.currentDay, 
+          snapQuality: "rest", 
+          tokensSpent: { streak: 0, sleep: 0, social: 0 }, 
+          tokensRemaining: s.tokens, 
+          relationshipDelta: -10 
+        }],
       };
     });
   }, []);
 
   const chooseSnap = useCallback((quality: SnapQuality) => {
-    if (quality === "rest") { skipStreak(); return; }
+    if (quality === "rest") {
+      skipStreak();
+      return;
+    }
+
     const cost = SNAP_COSTS[quality];
     setState((s) => {
       if (s.tokens < cost) return s;
-      // Subtract tokens but STAY in "choosing" phase to avoid the lock
       const relDelta = SNAP_RELATIONSHIP[quality];
       const tokensLeft = s.tokens - cost;
+
       return {
-        ...s, tokens: tokensLeft, simulatedTime: calculateTime(tokensLeft), streak: s.streak + 1,
+        ...s,
+        tokens: tokensLeft,
+        simulatedTime: calculateTime(tokensLeft),
+        streak: s.streak + 1,
         relationshipMeter: Math.max(0, Math.min(100, s.relationshipMeter + relDelta)),
-        history: [...s.history, { day: s.currentDay, snapQuality: quality, tokensSpent: { streak: cost, sleep: 0, social: 0 }, tokensRemaining: tokensLeft, relationshipDelta: relDelta }],
+        history: [...s.history, {
+          day: s.currentDay,
+          snapQuality: quality,
+          tokensSpent: { streak: cost, sleep: 0, social: 0 },
+          tokensRemaining: tokensLeft,
+          relationshipDelta: relDelta,
+        }],
+        streakBroken: false,
       };
     });
   }, [skipStreak]);
 
   const handleNotification = useCallback((choice: NotificationChoice) => {
-    setState(s => ({ ...s, phase: "choosing", currentNotification: null, pendingSnapChoice: null }));
+    setState(s => ({ 
+      ...s, 
+      phase: "choosing", 
+      currentNotification: null, 
+      pendingSnapChoice: null 
+    }));
   }, []);
 
-  return { state, startGame, chooseSnap, handleNotification, skipStreak, resetGame: () => window.location.reload() };
+  const resetGame = useCallback(() => {
+    window.location.reload();
+  }, []);
+
+  return { state, startGame, chooseSnap, handleNotification, skipStreak, resetGame };
 }
