@@ -58,6 +58,34 @@ export function StreakSimulator() {
           <AnimatePresence mode="wait">
             {state.phase === "intro" && <motion.div key="intro" exit={{ opacity: 0 }}><IntroScreen onStart={startGame} /></motion.div>}
             {state.phase === "summary" && <motion.div key="summary" initial={{ opacity: 0 }} animate={{ opacity: 1 }}><PostGameSummary state={state} onRestart={() => { setActiveCards([]); resetGame(); }} /></motion.div>}
+            {state.phase === "dayStart" && (
+    <motion.div
+      key="dayStart"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="absolute inset-0 bg-background/95 backdrop-blur-md z-50 flex flex-col items-center justify-center p-8 text-center"
+    >
+      <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} className="space-y-6">
+        <div className="space-y-2">
+          <span className="text-primary font-mono text-sm tracking-widest uppercase">New Cycle Initiated</span>
+          <h2 className="text-5xl font-black italic text-foreground tracking-tighter">DAY {state.currentDay}</h2>
+        </div>
+        <div className="bg-secondary/30 p-4 rounded-2xl border border-border/50">
+          <p className="text-[11px] text-muted-foreground leading-relaxed">
+            The loop resets. Your 🔥 {state.streak} day streak is active. 
+            Remember: 13-14 year olds visit this app an average of <strong>841 times a month</strong>.
+          </p>
+        </div>
+        <button
+          onClick={() => startGame()} // Use a function to set phase back to "choosing"
+          className="w-full bg-[#FFFC00] text-black py-4 rounded-xl font-black text-sm uppercase tracking-widest shadow-lg active:scale-95 transition-all"
+        >
+          Continue the Loop
+        </button>
+      </motion.div>
+    </motion.div>
+  )}
             {(state.phase === "choosing" || state.phase === "notification") && (
               <motion.div key="game" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="px-5 pb-5 space-y-4">
                 <div className="flex items-center gap-3 py-3 border-b border-border/50">
