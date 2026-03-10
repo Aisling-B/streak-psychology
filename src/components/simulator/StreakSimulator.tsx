@@ -1,15 +1,52 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { useSimulatorEngine } from "@/hooks/useSimulatorEngine";
+import { useSimulatorEngine, NotificationChoice } from "@/hooks/useSimulatorEngine";
 import { IntroScreen } from "./IntroScreen";
 import { TokenBar } from "./TokenBar";
 import { SnapChooser } from "./SnapChooser";
 import { RelationshipMeter } from "./RelationshipMeter";
+import { NotificationOverlay } from "./NotificationOverlay"; // Restored import
 import { PostGameSummary } from "./PostGameSummary";
-import { useState } from "react";
+import { PsychologyCard } from "../PsychologyCard"; // Ensure this is imported
+import { useState, useEffect } from "react";
+
+interface RevealCard {
+  id: string;
+  title: string;
+  description: string;
+  emoji: string;
+  color: "primary" | "accent" | "reveal" | "destructive";
+}
+
+const MILESTONE_CARDS: Record<number, RevealCard> = {
+  121: { id: "dopamine", title: "🧪 The Dopamine Loop", description: "Your brain releases dopamine because it ANTICIPATES the reward of that number going up.", emoji: "🧪", color: "primary" },
+  124: { id: "sunk-cost", title: "🪤 Sunk Cost Fallacy", description: "Breaking the streak now feels like 'wasting' life energy. This is a behavioral chore.", emoji: "🪤", color: "accent" },
+};
 
 export function StreakSimulator() {
-  const { state, startGame, chooseSnap, skipStreak, resetGame } = useSimulatorEngine();
+  // Added handleNotification back to the destructuring
+  const { state, startGame, chooseSnap, handleNotification, skipStreak, resetGame } = useSimulatorEngine();
+  const [activeCards, setActiveCards] = useState<RevealCard[]>([]);
   const isBurnout = state.tokens === 0;
+
+  // Psychology Trigger Logic
+  useEffect(() => {
+    const card = MILESTONE_CARDS[state.streak];
+    if (card && !activeCards.find((c) => c.id === card.id)) {
+      setActiveCards((prev) => [...prev, card]);
+    }
+  }, [state.streak]);
+
+  useEffect(() => {
+    if (isBurnout && !activeCards.find(c => c.id === "burnout-logic")) {
+      setActiveCards(prev => [...prev, { 
+        id: "burnout-logic", 
+        title: "😫 The Burnout Loop", 
+        description: "15-24% of activity happens between 9pm and 5am just to keep numbers alive.", 
+        emoji: "😫", 
+        color: "destructive" 
+      }]);
+    }
+  }, [isBurnout]);
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-[#FFFC00]">
@@ -24,11 +61,18 @@ export function StreakSimulator() {
 
           <AnimatePresence mode="wait">
             {state.phase === "intro" && (
-              <motion.div key="intro" exit={{ opacity: 0 }} className="flex-1"><IntroScreen onStart={startGame} /></motion.div>
+              <motion.div key="intro" exit={{ opacity: 0 }} className="flex-1">
+                <IntroScreen onStart={startGame} />
+              </motion.div>
             )}
 
             {state.phase === "dayStart" && (
-              <motion.div key="dayStart" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 bg-background z-[100] flex flex-col items-center justify-center p-10 text-center">
+              <motion.div 
+                key="dayStart" 
+                initial={{ opacity: 0 }} 
+                animate={{ opacity: 1 }} 
+                className="absolute inset-0 bg-background z-[100] flex flex-col items-center justify-center p-10 text-center"
+              >
                 <span className="text-primary font-mono text-[10px] tracking-widest uppercase font-bold mb-2">Cycle Reset</span>
                 <h2 className="text-6xl font-black italic text-foreground tracking-tighter mb-6">DAY {state.currentDay}</h2>
                 <div className="bg-secondary/40 p-5 rounded-3xl border border-border mb-8">
@@ -42,10 +86,13 @@ export function StreakSimulator() {
             )}
 
             {state.phase === "summary" && (
-              <motion.div key="summary" className="flex-1"><PostGameSummary state={state} onRestart={resetGame} /></motion.div>
+              <motion.div key="summary" className="flex-1">
+                <PostGameSummary state={state} onRestart={resetGame} />
+              </motion.div>
             )}
 
-            {state.phase === "choosing" && (
+            {/* Combined phase handling to allow notifications to show on top of choosing phase */}
+            {(state.phase === "choosing" || state.phase === "notification") && (
               <motion.div key="game" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="px-6 flex-1 flex flex-col gap-4 overflow-y-auto pb-10">
                 <div className="flex items-center gap-3 py-4 border-b border-border/50">
                   <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center text-xl">👤</div>
@@ -59,7 +106,6 @@ export function StreakSimulator() {
                 <RelationshipMeter value={state.relationshipMeter} sleepDebt={state.sleepDebt} socialHealth={state.socialHealth} />
 
                 <div className="relative flex-1">
-                  {/* MUTUALLY EXCLUSIVE RENDER: Buttons OR Burnout */}
                   {!isBurnout ? (
                     <SnapChooser tokens={state.tokens} onChoose={chooseSnap} onSkip={skipStreak} streak={state.streak} />
                   ) : (
@@ -71,7 +117,25 @@ export function StreakSimulator() {
                     </motion.div>
                   )}
                 </div>
+
+                {/* Restored Psychology Cards display logic */}
+                <AnimatePresence>
+                  {activeCards.map((card) => (
+                    <PsychologyCard key={card.id} {...card} onDismiss={() => setActiveCards(prev => prev.filter(c => c.id !== card.id))} />
+                  ))}
+                </AnimatePresence>
               </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Restored Real Life Situation (Notification) Overlay */}
+          <AnimatePresence>
+            {state.phase === "notification" && state.currentNotification && (
+              <NotificationOverlay
+                notification={state.currentNotification}
+                tokensLeft={state.tokens}
+                onChoice={(choice) => handleNotification(choice as NotificationChoice)}
+              />
             )}
           </AnimatePresence>
 
