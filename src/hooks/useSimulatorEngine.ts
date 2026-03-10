@@ -1,6 +1,5 @@
 import { useState, useCallback } from "react";
 
-// The build often fails if these aren't explicitly exported for components to use
 export type SnapQuality = "blank" | "photo" | "personal" | "rest";
 export type NotificationChoice = "ignore" | "attend";
 export type NotificationType = "homework" | "family" | "friend-irl" | "sleep-warning" | "anxiety";
@@ -54,6 +53,8 @@ const SNAP_RELATIONSHIP: Record<SnapQuality, number> = {
 
 const NOTIFICATIONS: GameNotification[] = [
   { id: "hw1", type: "homework", title: "📚 Math Assignment", body: "Math homework is due tomorrow.", emoji: "📚", tokenCost: 2 },
+  { id: "fam1", type: "family", title: "🍽️ Family Dinner", body: "Mom's calling you down for dinner.", emoji: "🍽️", tokenCost: 2 },
+  { id: "irl1", type: "friend-irl", title: "🏀 Friends at the Park", body: "Your friends are playing basketball.", emoji: "🏀", tokenCost: 3 },
   { id: "sleep1", type: "sleep-warning", title: "😴 Past Midnight", body: "15-24% of teen activity happens now.", emoji: "😴", tokenCost: 0 },
   { id: "anx1", type: "anxiety", title: "😰 Streak Anxiety", body: "Did they reply? It's been 47 mins.", emoji: "😰", tokenCost: 1 }
 ];
@@ -118,7 +119,38 @@ export function useSimulatorEngine() {
   }, [skipStreak]);
 
   const handleNotification = useCallback((choice: NotificationChoice) => {
-    setState(s => ({ ...s, phase: "choosing", currentNotification: null, pendingSnapChoice: null }));
+    setState(s => {
+      if (!s.pendingSnapChoice || !s.currentNotification) return s;
+      
+      const snapCost = SNAP_COSTS[s.pendingSnapChoice];
+      const notificationCost = choice === "attend" ? s.currentNotification.tokenCost : 0;
+      const totalCost = snapCost + notificationCost;
+      
+      const tokensLeft = Math.max(0, s.tokens - totalCost);
+      const relDelta = SNAP_RELATIONSHIP[s.pendingSnapChoice];
+      const socialDelta = choice === "attend" ? 15 : -8;
+
+      return {
+        ...s,
+        phase: "choosing",
+        tokens: tokensLeft,
+        simulatedTime: calculateTime(tokensLeft),
+        streak: s.streak + 1,
+        socialHealth: Math.max(0, Math.min(100, s.socialHealth + socialDelta)),
+        relationshipMeter: Math.max(0, Math.min(100, s.relationshipMeter + relDelta)),
+        currentNotification: null,
+        pendingSnapChoice: null,
+        history: [...s.history, {
+          day: s.currentDay,
+          snapQuality: s.pendingSnapChoice,
+          tokensSpent: { streak: snapCost, sleep: 0, social: notificationCost },
+          tokensRemaining: tokensLeft,
+          relationshipDelta: relDelta,
+          notification: s.currentNotification,
+          notificationChoice: choice
+        }]
+      };
+    });
   }, []);
 
   return { 
