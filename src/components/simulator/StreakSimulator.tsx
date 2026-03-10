@@ -50,7 +50,10 @@ export function StreakSimulator() {
               <motion.div key="game" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="px-6 flex-1 flex flex-col gap-4 overflow-y-auto pb-10">
                 <div className="flex items-center gap-3 py-4 border-b border-border/50">
                   <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center text-xl">👤</div>
-                  <div className="flex-1"><p className="font-bold">BestFriend_2024</p><p className="text-[10px] uppercase font-black text-primary">{state.streakBroken ? "💔 Streak Dead" : `🔥 ${state.streak} DAY STREAK`}</p></div>
+                  <div className="flex-1 text-left">
+                    <p className="font-bold">BestFriend_2024</p>
+                    <p className="text-[10px] uppercase font-black text-primary">{state.streakBroken ? "💔 Streak Dead" : `🔥 ${state.streak} DAY STREAK`}</p>
+                  </div>
                 </div>
 
                 <TokenBar tokens={state.tokens} maxTokens={state.maxTokens} day={state.currentDay} totalDays={state.totalDays} streak={state.streak} />
@@ -62,9 +65,9 @@ export function StreakSimulator() {
                   ) : (
                     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="absolute inset-0 bg-background/95 flex flex-col items-center justify-center text-center p-6 rounded-3xl border-2 border-destructive/20 z-50">
                       <span className="text-4xl mb-4">🔋</span>
-                      <h3 className="font-black text-xl text-destructive uppercase mb-2">Energy Depleted</h3>
+                      <h3 className="font-black text-xl text-destructive uppercase tracking-tighter mb-2">Energy Depleted</h3>
                       <p className="text-[11px] text-muted-foreground mb-8 italic">"The world is spinning."</p>
-                      <button onClick={skipStreak} className="w-full bg-primary text-primary-foreground py-5 rounded-2xl font-black text-sm uppercase">End Day & Rest</button>
+                      <button onClick={skipStreak} className="w-full bg-primary text-primary-foreground py-5 rounded-2xl font-black text-sm uppercase shadow-lg active:scale-95 transition-all">End Day & Rest</button>
                     </motion.div>
                   )}
                 </div>
@@ -72,7 +75,6 @@ export function StreakSimulator() {
             )}
           </AnimatePresence>
 
-          {/* This is the part that handles the notifications! */}
           <AnimatePresence>
             {state.phase === "notification" && state.currentNotification && (
               <NotificationOverlay
