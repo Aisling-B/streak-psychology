@@ -64,23 +64,60 @@ export function useSimulatorEngine() {
     });
   }, []);
 
-  const chooseSnap = useCallback((quality: SnapQuality) => {
-    if (quality === "rest") { skipStreak(); return; }
-    const cost = { blank: 1, photo: 2, personal: 3, rest: 0 }[quality];
-    
+const chooseSnap = useCallback((quality: SnapQuality) => {
+    if (quality === "rest") {
+      skipStreak();
+      return;
+    }
+
+    const cost = SNAP_COSTS[quality];
     setState((s) => {
+      // 1. Check for sufficient tokens
       if (s.tokens < cost) return s;
-      const tokensLeft = s.tokens - cost;
+
+      // 2. CHECK FOR NOTIFICATION (The "Real Life Situation")
+      const usedIds = new Set(s.history.map((h) => h.notification?.id).filter(Boolean) as string[]);
+      const notification = getNotificationForDay(s.currentDay, usedIds);
+
+      // 3. If a notification is found, PAUSE and show the pop-up
+      if (notification) {
+        return {
+          ...s,
+          pendingSnapChoice: quality,
+          currentNotification: notification,
+          phase: "notification", // This triggers the NotificationOverlay component
+        };
+      }
+
+      // 4. If no notification, proceed as normal
+      const snapCost = SNAP_COSTS[quality];
+      const relDelta = SNAP_RELATIONSHIP[quality];
+      const tokensLeft = s.tokens - snapCost;
+
       return {
         ...s,
         tokens: tokensLeft,
         simulatedTime: calculateTime(tokensLeft),
         streak: s.streak + 1,
-        relationshipMeter: Math.min(100, s.relationshipMeter + (quality === 'personal' ? 10 : 2)),
-        history: [...s.history, { day: s.currentDay, quality }]
+        relationshipMeter: Math.max(0, Math.min(100, s.relationshipMeter + relDelta)),
+        history: [...s.history, {
+          day: s.currentDay,
+          snapQuality: quality,
+          tokensSpent: { streak: snapCost, sleep: 0, social: 0 },
+          tokensRemaining: tokensLeft,
+          relationshipDelta: relDelta,
+        }],
+        streakBroken: false,
       };
     });
   }, [skipStreak]);
 
-  return { state, startGame, chooseSnap, skipStreak, resetGame: () => window.location.reload() };
-}
+  // Ensure you also include the handleNotification function in your return
+  return { 
+    state, 
+    startGame, 
+    chooseSnap, 
+    handleNotification, 
+    skipStreak, 
+    resetGame: () => window.location.reload() 
+  };
